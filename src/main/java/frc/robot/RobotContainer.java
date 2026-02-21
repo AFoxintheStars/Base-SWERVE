@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.subsystems.LEDSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
 import swervelib.SwerveInputStream;
 import edu.wpi.first.math.MathUtil;
@@ -19,11 +20,14 @@ public class RobotContainer {
   private final SwerveInputStream driveDirectAngle;
   private final Command driveFieldOrientedDirectAngle;
   private final Command driveFieldOrientedAngularVelocity;
+  
+  private final LEDSubsystem m_ledSubsystem;
 
   public RobotContainer() {
     // initialize subsystem and controller first so they are available to the command/streams
     drivebase = new SwerveSubsystem();
     m_driverController = new CommandXboxController(0);
+    m_ledSubsystem = new LEDSubsystem();
 
     // build input streams and commands using initialized objects
     driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
