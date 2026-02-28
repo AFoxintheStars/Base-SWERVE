@@ -17,6 +17,8 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.util.DriveFeedforwards;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
+
+import edu.wpi.first.epilogue.Logged;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -33,6 +35,8 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
 import frc.robot.Constants;
+import frc.robot.lib.SwerveTelemetry;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -56,6 +60,8 @@ public class SwerveSubsystem extends SubsystemBase
    * Swerve drive object.
    */
   private final SwerveDrive swerveDrive;
+  @Logged(name = "Swerve")
+  private final SwerveTelemetry telemetry = new SwerveTelemetry();
 
   /**
    * Initialize {@link SwerveDrive} with the directory provided.
@@ -110,9 +116,20 @@ public class SwerveSubsystem extends SubsystemBase
                                              Rotation2d.fromDegrees(0)));
   }
 
+  public void updateTelemetry() {
+  telemetry.rotation = swerveDrive.getPose().getRotation();
+
+  telemetry.currentSpeeds = swerveDrive.getRobotVelocity();
+
+  telemetry.currentStates = swerveDrive.getStates();
+
+  // telemetry.desiredStates = swerveDrive.getDesiredStates();
+}
+
   @Override
   public void periodic()
   {
+    updateTelemetry();
   }
 
   @Override

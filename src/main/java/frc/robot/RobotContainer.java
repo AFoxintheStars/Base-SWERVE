@@ -52,7 +52,7 @@ public class RobotContainer
   SwerveInputStream driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
                                                                   () -> driverJoystick.getY() * -1,
                                                                   () -> driverJoystick.getX() * -1)
-                                                              .withControllerRotationAxis(() -> driverJoystick.getRawAxis(1))
+                                                              .withControllerRotationAxis(() -> driverJoystick.getZ() * -1)
                                                               .deadband(OperatorConstants.DEADBAND)
                                                               .scaleTranslation(0.8)
                                                               .allianceRelativeControl(true);
@@ -65,7 +65,8 @@ public class RobotContainer
                                                              .headingWhile(true);
 
   /**
-   * Clone's the angular velocity input stream and converts it to a robotRelative input stream.
+   * Clone's the angular velocity input stream and converts it to a robotRelative 
+   * input stream.
    */
   SwerveInputStream driveRobotOriented = driveAngularVelocity.copy().robotRelative(true)
                                                              .allianceRelativeControl(false);
@@ -185,15 +186,15 @@ public class RobotContainer
       driverJoystick.button(3).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
       driverJoystick.button(4).onTrue((Commands.runOnce(drivebase::zeroGyro)));
       driverJoystick.button(2).whileTrue(drivebase.centerModulesCommand());
-      driverJoystick.button(0).onTrue(Commands.none());
-      driverJoystick.button(0).onTrue(Commands.none());
+      // driverJoystick.button(0).onTrue(Commands.none());
+      // driverJoystick.button(0).onTrue(Commands.none());
     } else
     {
       driverJoystick.button(4).onTrue((Commands.runOnce(drivebase::zeroGyro)));
-      driverJoystick.button(0).whileTrue(Commands.none());
-      driverJoystick.button(0).whileTrue(Commands.none());
+      // driverJoystick.button(0).whileTrue(Commands.none());
+      // driverJoystick.button(0).whileTrue(Commands.none());
       driverJoystick.button(3).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-      driverJoystick.button(0).onTrue(Commands.none());
+      // driverJoystick.button(0).onTrue(Commands.none());
     }
 
   }
