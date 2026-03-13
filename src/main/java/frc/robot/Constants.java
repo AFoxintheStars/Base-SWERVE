@@ -43,7 +43,7 @@ public final class Constants
   {
 
     // Joystick Deadband
-    public static final double DEADBAND        = 0.1;
+    public static final double DEADBAND        = 0.25;
     public static final double LEFT_Y_DEADBAND = 0.1;
     public static final double RIGHT_X_DEADBAND = 0.1;
     public static final double TURN_CONSTANT    = 6;
@@ -52,10 +52,10 @@ public final class Constants
 
   public static final class IntakeConstants
   {
-    public static final int MOTOR_CAN_ID = 20;
-    public static final double INTAKE_SPEED = 0.8;
-    public static final double OUTTAKE_SPEED = -0.8;
+    public static final int MOTOR_CAN_ID = 9;
+    public static final double INTAKE_SPEED = -0.8;
+    public static final double OUTTAKE_SPEED = 0.8;
     public static final boolean MOTOR_INVERTED = true;
-    public static final int INTAKE_WHEEL_CAN_ID = 0;
+    public static final int INTAKE_WHEEL_CAN_ID = 10;
   }
 }

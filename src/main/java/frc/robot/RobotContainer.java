@@ -24,6 +24,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.subsystems.IntakeArmSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.LEDSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
@@ -44,7 +45,8 @@ public class RobotContainer
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve"));
   private final LEDSubsystem          leds       = new LEDSubsystem();
-  private final IntakeSubsystem       intake     = new IntakeSubsystem();
+  private final IntakeArmSubsystem intakeArm = new IntakeArmSubsystem();
+  private final IntakeSubsystem intake = new IntakeSubsystem();
 
   // Establish a Sendable Chooser that will be able to be sent to the SmartDashboard, allowing selection of desired auto
   private final SendableChooser<Command> autoChooser;
@@ -112,7 +114,7 @@ public class RobotContainer
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
 
-    intake.setDefaultCommand(intake.setAngle(Degrees.of(0)));
+    intakeArm.setDefaultCommand(intakeArm.setAngle(Degrees.of(0)));
     
     //Create the NamedCommands that will be used in PathPlanner
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
@@ -203,12 +205,12 @@ public class RobotContainer
       
       // Schedule `setAngle` when the Xbox controller's B button is pressed,
       // cancelling on release.
-      driverJoystick.button(11).whileTrue(intake.setAngle(Degrees.of(-5)));
-      driverJoystick.button(12).whileTrue(intake.setAngle(Degrees.of(15)));
+      driverJoystick.button(11).whileTrue(intakeArm.setAngle(Degrees.of(0)));
+      driverJoystick.button(12).whileTrue(intakeArm.setAngle(Degrees.of(90)));
       // Schedule `set` when the Xbox controller's B button is pressed,
       // cancelling on release.
-      driverJoystick.button(9).whileTrue(intake.set(0.3));
-      driverJoystick.button(10).whileTrue(intake.set(-0.3));
+      driverJoystick.button(9).whileTrue(intakeArm.set(0.3));
+      driverJoystick.button(10).whileTrue(intakeArm.set(-0.3));
 
       driverJoystick.button(1).whileTrue(intake.intake());
       driverJoystick.button(2).whileTrue(intake.outtake());
