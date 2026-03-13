@@ -12,6 +12,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
+import static edu.wpi.first.units.Units.Degrees;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -110,6 +111,8 @@ public class RobotContainer
     // Configure the trigger bindings
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
+
+    intake.setDefaultCommand(intake.setAngle(Degrees.of(0)));
     
     //Create the NamedCommands that will be used in PathPlanner
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
@@ -197,12 +200,21 @@ public class RobotContainer
       // driverJoystick.button(0).whileTrue(Commands.none());
       driverJoystick.button(3).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
       // driverJoystick.button(0).onTrue(Commands.none());
-    }
+      
+      // Schedule `setAngle` when the Xbox controller's B button is pressed,
+      // cancelling on release.
+      driverJoystick.button(11).whileTrue(intake.setAngle(Degrees.of(-5)));
+      driverJoystick.button(12).whileTrue(intake.setAngle(Degrees.of(15)));
+      // Schedule `set` when the Xbox controller's B button is pressed,
+      // cancelling on release.
+      driverJoystick.button(9).whileTrue(intake.set(0.3));
+      driverJoystick.button(10).whileTrue(intake.set(-0.3));
 
-    driverJoystick.button(OperatorConstants.INTAKE_TOGGLE_BUTTON)
-                  .onTrue(Commands.runOnce(intake::toggle, intake));
+      driverJoystick.button(1).whileTrue(intake.intake());
+      driverJoystick.button(2).whileTrue(intake.outtake());
 
   }
+    }
 
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
