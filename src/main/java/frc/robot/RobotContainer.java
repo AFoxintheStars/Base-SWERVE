@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.LEDSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
 import java.io.File;
@@ -42,6 +43,7 @@ public class RobotContainer
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve"));
   private final LEDSubsystem          leds       = new LEDSubsystem();
+  private final IntakeSubsystem       intake     = new IntakeSubsystem();
 
   // Establish a Sendable Chooser that will be able to be sent to the SmartDashboard, allowing selection of desired auto
   private final SendableChooser<Command> autoChooser;
@@ -196,6 +198,9 @@ public class RobotContainer
       driverJoystick.button(3).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
       // driverJoystick.button(0).onTrue(Commands.none());
     }
+
+    driverJoystick.button(OperatorConstants.INTAKE_TOGGLE_BUTTON)
+                  .onTrue(Commands.runOnce(intake::toggle, intake));
 
   }
 
