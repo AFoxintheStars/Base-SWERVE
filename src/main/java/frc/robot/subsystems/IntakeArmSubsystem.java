@@ -1,93 +1,244 @@
 package frc.robot.subsystems;
 
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkClosedLoopController;
+import com.revrobotics.spark.SparkBase.ControlType;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import com.revrobotics.RelativeEncoder;
+
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
+import edu.wpi.first.units.measure.Voltage;
 import static edu.wpi.first.units.Units.*;
 
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.SparkMax;
-
-import edu.wpi.first.math.controller.ArmFeedforward;
-import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants;
 
-import yams.gearing.GearBox;
-import yams.gearing.MechanismGearing;
-import yams.mechanisms.config.ArmConfig;
-import yams.mechanisms.positional.Arm;
-import yams.motorcontrollers.SmartMotorController;
-import yams.motorcontrollers.SmartMotorControllerConfig;
-import yams.motorcontrollers.SmartMotorControllerConfig.*;
-import yams.motorcontrollers.local.SparkWrapper;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
+
+import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
+import edu.wpi.first.math.system.plant.DCMotor;
+
+import frc.robot.Constants;
+import frc.robot.Constants.ArmConfig;
 
 public class IntakeArmSubsystem extends SubsystemBase {
 
-  private SmartMotorControllerConfig smcConfig =
-      new SmartMotorControllerConfig(this)
-          .withControlMode(ControlMode.CLOSED_LOOP)
-          .withClosedLoopController(50, 0, 0,
-              DegreesPerSecond.of(90),
-              DegreesPerSecondPerSecond.of(45))
-          .withSimClosedLoopController(50, 0, 0,
-              DegreesPerSecond.of(90),
-              DegreesPerSecondPerSecond.of(45))
-          .withFeedforward(new ArmFeedforward(0, 0, 0))
-          .withSimFeedforward(new ArmFeedforward(0, 0, 0))
-          .withTelemetry("ArmMotor", TelemetryVerbosity.HIGH)
-          .withGearing(new MechanismGearing(GearBox.fromReductionStages(9)))
-          .withMotorInverted(true)
-          .withIdleMode(MotorMode.BRAKE)
-          .withStatorCurrentLimit(Amps.of(40))
-          .withClosedLoopRampRate(Seconds.of(0.25))
-          .withOpenLoopRampRate(Seconds.of(0.25));
+  private final SparkMax motor;
+  private final SparkClosedLoopController controller;
+  private final RelativeEncoder encoder;
+  private double lastKP = ArmConfig.KP;
+  private double lastKI = ArmConfig.KI;
+  private double lastKD = ArmConfig.KD;
 
-  private SparkMax spark =
-      new SparkMax(Constants.IntakeConstants.MOTOR_CAN_ID, MotorType.kBrushless);
+  private final SysIdRoutine sysIdRoutine;
 
-  private SmartMotorController sparkSmartMotorController =
-      new SparkWrapper(spark, DCMotor.getNEO(1), smcConfig);
+  private boolean manualMode = false;
 
-  private ArmConfig armCfg =
-      new ArmConfig(sparkSmartMotorController)
-          .withSoftLimits(Degrees.of(5), Degrees.of(80))
-          .withHardLimit(Degrees.of(0), Degrees.of(90))
-          .withStartingPosition(Degrees.of(0))
-          .withLength(Feet.of(1.7))
-          .withMass(Pounds.of(8))
-          .withTelemetry("Arm", TelemetryVerbosity.HIGH);
+  // Simulation
+  private final SingleJointedArmSim armSim =
+      new SingleJointedArmSim(
+          DCMotor.getNEO(1),
+          ArmConfig.GEAR_RATIO,
+          SingleJointedArmSim.estimateMOI(
+            ArmConfig.ARM_LENGTH,
+            ArmConfig.ARM_MASS
+          ),
+          ArmConfig.ARM_LENGTH,
+          Math.toRadians(ArmConfig.MIN_ANGLE),
+          Math.toRadians(ArmConfig.MAX_ANGLE),
+          true, 
+          0, 
+          new double[] {}
+      );
 
-  private Arm arm = new Arm(armCfg);
+  @SuppressWarnings("removal")
+  public IntakeArmSubsystem() {
 
-  public IntakeArmSubsystem() {}
+    motor = new SparkMax(Constants.IntakeConstants.MOTOR_CAN_ID, MotorType.kBrushless);
 
-  public Command setAngle(Angle angle) {
-    return arm.run(angle);
+    SparkMaxConfig armConfig = new SparkMaxConfig();
+
+    armConfig
+      .smartCurrentLimit(40)
+      .idleMode(IdleMode.kBrake)
+      .inverted(true);
+
+    armConfig.encoder
+      .positionConversionFactor(ArmConfig.POSITION_CONVERSION_FACTOR)
+      .velocityConversionFactor(ArmConfig.VELOCITY_CONVERSION_FACTOR);
+
+    armConfig.closedLoop
+      .p(ArmConfig.KP)
+      .i(ArmConfig.KI)
+      .d(ArmConfig.KD)
+      .outputRange(-1, 1);
+
+    armConfig.closedLoop.maxMotion
+      .cruiseVelocity(2000)
+      .maxAcceleration(4000);
+
+    armConfig.closedLoop.feedForward
+      .kS(ArmConfig.KS)
+      .kV(ArmConfig.KV)
+      .kA(ArmConfig.KA)
+      .kCos(ArmConfig.KG)
+      .kCosRatio(ArmConfig.KCOS_RATIO);
+
+    armConfig.softLimit
+      .forwardSoftLimit(ArmConfig.MAX_ANGLE)
+      .reverseSoftLimit(ArmConfig.MIN_ANGLE)
+      .forwardSoftLimitEnabled(true)
+      .reverseSoftLimitEnabled(true);
+
+    motor.configure(
+      armConfig,
+      ResetMode.kResetSafeParameters,
+      PersistMode.kPersistParameters
+    );
+
+    controller = motor.getClosedLoopController();
+    encoder = motor.getEncoder();
+
+    encoder.setPosition(0);
+
+    // SysID configuration
+    sysIdRoutine = new SysIdRoutine(
+        new SysIdRoutine.Config(
+            Volts.per(Second).of(2),
+            Volts.of(6),
+            Seconds.of(4)
+        ),
+        new SysIdRoutine.Mechanism(
+            this::sysIdDrive,
+            this::sysIdLog,
+            this
+        )
+    );
   }
 
-  public Command setAngleAndStop(Angle angle, Angle tolerance) {
-    return arm.runTo(angle, tolerance);
+  // Set arm position
+  public Command setAngle(double angle) {
+    return runOnce(() -> {
+
+      manualMode = false;
+
+      double adjustedTarget = applyAdaptiveMotion(angle);
+
+      controller.setSetpoint(
+          adjustedTarget,
+          ControlType.kMAXMotionPositionControl
+      );
+    });
   }
 
-  public void setAngleSetpoint(Angle angle) {
-    arm.setMechanismPositionSetpoint(angle);
+  // Manual override
+  public Command manual(double speed) {
+    return run(() -> {
+
+      manualMode = true;
+      motor.set(speed);
+
+    }).finallyDo(() -> {
+
+      manualMode = false;
+      motor.set(0);
+
+    });
   }
 
-  public Command set(double dutycycle) {
-    return arm.set(dutycycle);
+  public double getAngle() {
+    return encoder.getPosition();
   }
 
-  public Command sysId() {
-    return arm.sysId(Volts.of(7), Volts.of(2).per(Second), Seconds.of(4));
+  // SysID voltage input
+  private void sysIdDrive(Voltage volts) {
+    motor.setVoltage(volts.in(Volts));
+  }
+
+  private double applyAdaptiveMotion(double targetAngle) {
+
+    double currentAngle = getAngle();
+
+    double gravityScale = Math.cos(Math.toRadians(currentAngle));
+
+    double adjustment = 1 - gravityScale * 0.3;
+
+    double delta = targetAngle - currentAngle;
+
+    return currentAngle + delta * adjustment;
+  }
+
+  // SysID logging
+  private void sysIdLog(SysIdRoutineLog log) {
+
+    log.motor("arm")
+        .voltage(
+            Volts.of(
+                motor.getAppliedOutput() *
+                RobotController.getBatteryVoltage()
+            ))
+        .angularPosition(Degrees.of(encoder.getPosition()))
+        .angularVelocity(DegreesPerSecond.of(encoder.getVelocity()));
+  }
+
+  public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+    return sysIdRoutine.quasistatic(direction);
+  }
+
+  public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+    return sysIdRoutine.dynamic(direction);
   }
 
   @Override
+  @SuppressWarnings("removal")
   public void periodic() {
-    arm.updateTelemetry();
+    // Shuffleboard tuning
+    double kP = SmartDashboard.getNumber("Arm kP", ArmConfig.KP);
+    double kI = SmartDashboard.getNumber("Arm kI", ArmConfig.KI);
+    double kD = SmartDashboard.getNumber("Arm kD", ArmConfig.KD);
+
+    if (kP != lastKP || kI != lastKI || kD != lastKD) {
+
+      SparkMaxConfig pidUpdate = new SparkMaxConfig();
+
+      pidUpdate.closedLoop
+          .p(kP)
+          .i(kI)
+          .d(kD);
+
+      motor.configure(
+          pidUpdate,
+          ResetMode.kNoResetSafeParameters,
+          PersistMode.kNoPersistParameters
+      );
+
+      lastKP = kP;
+      lastKI = kI;
+      lastKD = kD;
+    }
+
+    SmartDashboard.putNumber("Arm Angle", getAngle());
+    SmartDashboard.putNumber("Arm Velocity", encoder.getVelocity());
+    SmartDashboard.putBoolean("Arm Manual Mode", manualMode);
+
   }
 
   @Override
   public void simulationPeriodic() {
-    arm.simIterate();
+    armSim.setInput(
+      motor.getAppliedOutput() * 
+      RobotController.getBatteryVoltage()
+      );
+
+    armSim.update(0.02);
+
+    encoder.setPosition(Math.toDegrees(armSim.getAngleRads()));
   }
 }
