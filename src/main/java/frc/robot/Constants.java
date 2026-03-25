@@ -22,11 +22,11 @@ public final class Constants
   public static final double ROBOT_MASS = (148 - 20.3) * 0.453592; // 32lbs * kg per pound
   public static final Matter CHASSIS    = new Matter(new Translation3d(0, 0, Units.inchesToMeters(8)), ROBOT_MASS);
   public static final double LOOP_TIME  = 0.13; //s, 20ms + 110ms sprk max velocity lag
-  public static final double MAX_SPEED  = Units.feetToMeters(5);
+  public static final double MAX_SPEED  = Units.feetToMeters(6);
   // Maximum speed of the robot in meters per second, used to limit acceleration.
 
 //  public static final class AutonConstants
-//  {
+//  
 //
 //    public static final PIDConstants TRANSLATION_PID = new PIDConstants(0.7, 0, 0);
 //    public static final PIDConstants ANGLE_PID       = new PIDConstants(0.4, 0, 0.01);
@@ -50,31 +50,8 @@ public final class Constants
     public static final int INTAKE_TOGGLE_BUTTON = 5;
   }
 
-    public static class ArmConfig
-  {
-    public static final double GEAR_RATIO = 135; // Motor rotations per arm rotation
-    public static final double POSITION_CONVERSION_FACTOR = 360.0 / GEAR_RATIO; // Degrees per motor rotation
-    public static final double VELOCITY_CONVERSION_FACTOR = POSITION_CONVERSION_FACTOR / 60.0; // Degrees per second per motor RPM
-  
-    public static final double KP = 0.2;
-    public static final double KI = 0.0;
-    public static final double KD = 0.0;
-  
-    public static final double KS = 0.0;
-    public static final double KG = 0.0;
-    public static final double KV = 0.0;
-    public static final double KA = 0.0;
-  
-    public static final double POSITION_TOLERANCE_DEG = 2.0;
-    public static final double KCOS_RATIO = 0;
-    public static final double MAX_ANGLE = 0;
-    public static final double MIN_ANGLE = 0;
-    public static final double ARM_LENGTH = 21.75;
-    public static final double ARM_MASS = 13.5;
-
-    public static double setpoint = 0.0;
-    public static boolean isManualMode = true;
-  }
+ //     public static final double ARM_LENGTH = Units.inchesToMeters(21.75);
+    // public static final double ARM_MASS = Units.lbsToKilograms(13.5);
 
   public static final class IntakeConstants
   {

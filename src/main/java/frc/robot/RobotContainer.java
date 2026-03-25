@@ -12,7 +12,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
-
+import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.Degree;
 import static edu.wpi.first.units.Units.Degrees;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -26,10 +26,15 @@ import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.subsystems.ClimberSubsystem;
 import frc.robot.subsystems.IntakeArmSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.LEDSubsystem;
+import frc.robot.subsystems.PrefeedSubsystem;
+import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
+import frc.robot.subsystems.TurretShooterSubsystem;
+
 import java.io.File;
 import swervelib.SwerveInputStream;
 
@@ -40,17 +45,15 @@ import swervelib.SwerveInputStream;
  */
 public class RobotContainer
 {
-
-  // Replace with CommandPS4Controller or CommandJoystick if needed
   final         CommandJoystick driverJoystick = new CommandJoystick(0);
-  // The robot's subsystems and commands are defined here...
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve"));
   private final LEDSubsystem          leds       = new LEDSubsystem();
   private final IntakeArmSubsystem intakeArm = new IntakeArmSubsystem();
   private final IntakeSubsystem intake = new IntakeSubsystem();
+  private final PrefeedSubsystem prefeed = new PrefeedSubsystem();
+  private final TurretShooterSubsystem shooter = new TurretShooterSubsystem();
 
-  // Establish a Sendable Chooser that will be able to be sent to the SmartDashboard, allowing selection of desired auto
   private final SendableChooser<Command> autoChooser;
 
   /**
@@ -112,25 +115,18 @@ public class RobotContainer
    */
   public RobotContainer()
   {
-    // Configure the trigger bindings
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
-
-    // intakeArm.setDefaultCommand(intakeArm.setAngle(Degrees.of(0)));
-    
-    //Create the NamedCommands that will be used in PathPlanner
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
 
-    //Have the autoChooser pull in all PathPlanner autos as options
+    shooter.setDefaultCommand(shooter.set(0));
+
     autoChooser = AutoBuilder.buildAutoChooser();
 
-    //Set the default auto (do nothing) 
     autoChooser.setDefaultOption("Do Nothing", Commands.none());
 
-    //Add a simple auto option to have the robot drive forward for 1 second then stop
     autoChooser.addOption("Drive Forward", drivebase.driveForward().withTimeout(1));
 
-    //Put the autoChooser on the SmartDashboard
     SmartDashboard.putData("Auto Chooser", autoChooser);
   }
 
@@ -200,23 +196,18 @@ public class RobotContainer
     } else
     {
       driverJoystick.button(4).onTrue((Commands.runOnce(drivebase::zeroGyro)));
-      // driverJoystick.button(0).whileTrue(Commands.none());
-      // driverJoystick.button(0).whileTrue(Commands.none());
       driverJoystick.button(3).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-      // driverJoystick.button(0).onTrue(Commands.none());
-      
-      driverJoystick.button(7).onTrue(intakeArm.setAngle(0));
-      driverJoystick.button(8).onTrue(intakeArm.setAngle(20));
-      driverJoystick.button(9).onTrue(intakeArm.setAngle(40));
-      driverJoystick.button(10).onTrue(intakeArm.setAngle(60));
-      driverJoystick.button(11).onTrue(intakeArm.setAngle(80));
-      driverJoystick.button(12).onTrue(intakeArm.setAngle(90));
 
-      // driverJoystick.button(9).whileTrue(intakeArm.set(0.3));
-      // driverJoystick.button(10).whileTrue(intakeArm.set(-0.3));
+      driverJoystick.button(11).whileTrue(intakeArm.set(0.7));
+      driverJoystick.button(12).whileTrue(intakeArm.set(-0.7));
 
       driverJoystick.button(1).whileTrue(intake.intake());
       driverJoystick.button(2).whileTrue(intake.outtake());
+
+      driverJoystick.button(5).whileTrue(prefeed.runPrefeed(0.8));
+
+      driverJoystick.button(9).whileTrue(shooter.setVelocity(RPM.of(60)));
+      driverJoystick.button(10).whileTrue(shooter.setVelocity(RPM.of(300)));
 
   }
     }
@@ -228,7 +219,6 @@ public class RobotContainer
    */
   public Command getAutonomousCommand()
   {
-    // Pass in the selected auto from the SmartDashboard as our desired autnomous commmand 
     return autoChooser.getSelected();
   }
 
