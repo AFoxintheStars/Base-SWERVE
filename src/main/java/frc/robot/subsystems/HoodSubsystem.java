@@ -17,7 +17,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 public class HoodSubsystem extends SubsystemBase {
 
     private final Servo servo = new Servo(0); // PWM port
-    private final DutyCycleEncoder encoder = new DutyCycleEncoder(1); // DIO port
+    private final DutyCycleEncoder encoder = new DutyCycleEncoder(3); // DIO port
 
     // PID for position control
     private final PIDController pid = new PIDController(0.02, 0, 0);
@@ -63,6 +63,10 @@ public class HoodSubsystem extends SubsystemBase {
         } else {
             servo.set(output * 0.5 + 0.5);
         }
+    }
+
+    public void setAngleDirect(Angle angle) {
+    setTargetAngle(angle.in(Degrees));
     }
 
     private double clamp(double val, double min, double max) {

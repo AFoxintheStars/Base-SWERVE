@@ -29,9 +29,10 @@ import frc.robot.Constants.OperatorConstants;
 import frc.robot.subsystems.ClimberSubsystem;
 import frc.robot.subsystems.IntakeArmSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
-import frc.robot.subsystems.LEDSubsystem;
 import frc.robot.subsystems.PrefeedSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
+import frc.robot.subsystems.VisionSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
 import frc.robot.subsystems.TurretFlywheelSubsystem;
 
@@ -48,11 +49,12 @@ public class RobotContainer
   final         CommandJoystick driverJoystick = new CommandJoystick(0);
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve"));
-  private final LEDSubsystem          leds       = new LEDSubsystem();
   private final IntakeArmSubsystem intakeArm = new IntakeArmSubsystem();
   private final IntakeSubsystem intake = new IntakeSubsystem();
   private final PrefeedSubsystem prefeed = new PrefeedSubsystem();
-  private final TurretFlywheelSubsystem shooter = new TurretFlywheelSubsystem();
+  private final ClimberSubsystem climber = new ClimberSubsystem();
+  public VisionSubsystem vision = new VisionSubsystem();
+  public ShooterSubsystem shooter = new ShooterSubsystem(vision);
 
   private final SendableChooser<Command> autoChooser;
 
@@ -118,8 +120,6 @@ public class RobotContainer
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
-
-    shooter.setDefaultCommand(shooter.set(0));
 
     autoChooser = AutoBuilder.buildAutoChooser();
 
@@ -195,14 +195,23 @@ public class RobotContainer
       // driverJoystick.button(0).onTrue(Commands.none());
     } else
     {
-      driverJoystick.button(4).onTrue((Commands.runOnce(drivebase::zeroGyro)));
-      driverJoystick.button(3).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
+      driverJoystick.button(3).onTrue((Commands.runOnce(drivebase::zeroGyro)));
+      driverJoystick.button(4).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
 
       driverJoystick.button(5).whileTrue(prefeed.runPrefeed(0.8));
 
-      driverJoystick.button(9).whileTrue(shooter.setVelocity(RPM.of(60)));
-      driverJoystick.button(10).whileTrue(shooter.setVelocity(RPM.of(300)));
+      driverJoystick.button(10).whileTrue(intakeArm.runToAngle(Degrees.of(80)));
+      driverJoystick.button(9).whileTrue(intakeArm.runToAngle(Degrees.of(5)));
+           
+      driverJoystick.button(1).whileTrue(intake.set(0.8));
+      driverJoystick.button(1).whileFalse(intake.set(0));
+      driverJoystick.button(2).whileTrue(intake.set(-0.8));
+      driverJoystick.button(2).whileFalse(intake.set(0));
 
+      driverJoystick.button(11).whileTrue(climber.climbUp());
+      driverJoystick.button(12).whileTrue(climber.climbDown());
+
+      driverJoystick.button(6).whileTrue(shooter.runShooter()).whileFalse(shooter.stopShooter());
   }
     }
 

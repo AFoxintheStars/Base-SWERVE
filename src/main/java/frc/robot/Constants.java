@@ -16,6 +16,7 @@ import yams.gearing.MechanismGearing;
 import yams.mechanisms.config.ArmConfig;
 import yams.mechanisms.config.ElevatorConfig;
 import yams.mechanisms.config.FlyWheelConfig;
+import yams.mechanisms.config.PivotConfig;
 import yams.motorcontrollers.SmartMotorControllerConfig;
 import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
@@ -87,8 +88,8 @@ public final class Constants
     public static final SmartMotorControllerConfig SMC_CONFIG = 
         new SmartMotorControllerConfig()
             .withGearing(new MechanismGearing(GearBox.fromReductionStages(1)))
-            .withClosedLoopController(0.5, 0, 0)
-            .withFeedforward(new SimpleMotorFeedforward(0.1, 0.12, 0.01))
+            .withClosedLoopController(1, 0, 0)
+            .withFeedforward(new SimpleMotorFeedforward(0, 0, 0))
             .withIdleMode(MotorMode.COAST);
 
     public static final FlyWheelConfig INTAKE_WHEEL_CONFIG = 
@@ -108,9 +109,9 @@ public final class Constants
     public static final SmartMotorControllerConfig SMC_CONFIG = 
         new SmartMotorControllerConfig()
             .withGearing(new MechanismGearing(GearBox.fromReductionStages(1)))
-            .withClosedLoopController(0.5, 0, 0)
+            .withClosedLoopController(1, 0, 0)
             .withFeedforward(new SimpleMotorFeedforward(0.1, 0.12, 0.01))
-            .withSimFeedforward(new SimpleMotorFeedforward(0.1, 0.12, 0.01))
+            .withSimFeedforward(new SimpleMotorFeedforward(0, 0, 0))
             .withClosedLoopRampRate(Seconds.of(0.25))
             .withOpenLoopRampRate(Seconds.of(0.25))
             .withStatorCurrentLimit(Amps.of(40))
@@ -123,5 +124,27 @@ public final class Constants
             .withSoftLimit(RPM.of(0), RPM.of(6000))
             .withTelemetry("Shooter", TelemetryVerbosity.HIGH)
             .withSpeedometerSimulation(RPM.of(7500));
+  }
+
+  // ==================== TURRET GEAR ====================
+  public static final class TurretConstants {
+    public static final int CAN_ID = 16;
+    public static final DCMotor MOTOR = DCMotor.getNEO(1);
+    
+    public static final SmartMotorControllerConfig SMC_CONFIG = 
+        new SmartMotorControllerConfig()
+            .withControlMode(ControlMode.CLOSED_LOOP)
+            .withClosedLoopController(4, 0, 0, DegreesPerSecond.of(180), DegreesPerSecondPerSecond.of(90))
+            // Configure Motor and Mechanism properties
+            .withGearing(new MechanismGearing(GearBox.fromReductionStages(12.5)))
+            .withIdleMode(MotorMode.BRAKE)
+            .withMotorInverted(false)
+            // Setup Telemetry
+            .withTelemetry("TurretMotor", TelemetryVerbosity.HIGH)
+            // Power Optimization
+            .withStatorCurrentLimit(Amps.of(40))
+            .withClosedLoopRampRate(Seconds.of(0.25))
+            .withOpenLoopRampRate(Seconds.of(0.25));
+  
   }
 }

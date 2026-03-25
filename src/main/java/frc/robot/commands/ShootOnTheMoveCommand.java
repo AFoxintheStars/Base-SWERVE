@@ -65,14 +65,17 @@ public class ShootOnTheMoveCommand extends Command
    * @param fieldOrientedChassisSpeeds Current field-oriented chassis speeds.
    * @param goal                       Goal to shoot at.
    */
-  public ShootOnTheMoveCommand(TurretSubsystem turret, HoodSubsystem hood, TurretFlywheelSubsystem turretFlywheelSubsystem,
+  public ShootOnTheMoveCommand(
+    TurretSubsystem turret, 
+    HoodSubsystem hood, 
+    TurretFlywheelSubsystem turretFlywheelSubsystem,
                                Supplier<Pose2d> currentPose, Supplier<ChassisSpeeds> fieldOrientedChassisSpeeds,
                                Pose2d goal)
   {
-    turretSubsystem = turret;
-    hoodSubsystem = hood;
-    turretFlywheelSubsystem = turretFlywheelSubsystem;
-    robotPose = currentPose;
+    this.turretSubsystem = turret;
+    this.hoodSubsystem = hood;
+    this.turretFlywheelSubsystem = turretFlywheelSubsystem;
+    this.robotPose = currentPose;
     this.fieldOrientedChassisSpeeds = fieldOrientedChassisSpeeds;
     this.goalPose = goal;
 
@@ -126,7 +129,7 @@ public class ShootOnTheMoveCommand extends Command
 
     // 7. SET OUTPUTS
     turretSubsystem.setAngleDirect(Degrees.of(turretAngle));
-    hoodSubsystem.setAngleDirect(Radians.of(newPitch));
+    hoodSubsystem.setAngleDirect(Degrees.of(newPitch));
     turretFlywheelSubsystem.setRPMDirect(MetersPerSecond.of(totalExitVelocity));
   }
 

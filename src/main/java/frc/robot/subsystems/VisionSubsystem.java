@@ -20,8 +20,8 @@ import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class VisionSubsystem extends SubsystemBase {
-    PhotonCamera camera = new PhotonCamera("HubOrientedCameraMountedOnTurret");
-    VisionSystemSim visionSim = new VisionSystemSim("main");
+    PhotonCamera camera = new PhotonCamera("LL-Turret-Camera");
+    VisionSystemSim visionSim = new VisionSystemSim("turret");
     AprilTagFieldLayout tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.kDefaultField);
 
     SimCameraProperties cameraProp = new SimCameraProperties();
@@ -29,27 +29,18 @@ public class VisionSubsystem extends SubsystemBase {
 
     public VisionSubsystem() {
         if (RobotBase.isSimulation()) {
-            // A 640 x 480 camera with a 100 degree diagonal FOV.
-            cameraProp.setCalibration(640, 480, Rotation2d.fromDegrees(100));
-            // Approximate detection noise with average and standard deviation error in
-            // pixels.
-            cameraProp.setCalibError(0.25, 0.08);
-            // Set the camera image capture framerate (Note: this is limited by robot loop
-            // rate).
-            cameraProp.setFPS(20);
-            // The average and standard deviation in milliseconds of image data latency.
+            cameraProp.setCalibration(640, 400, Rotation2d.fromDegrees(99.4));
+            cameraProp.setCalibError(0.88, 0.08);
+            cameraProp.setFPS(120);
             cameraProp.setAvgLatencyMs(35);
             cameraProp.setLatencyStdDevMs(5);
 
             cameraSim = new PhotonCameraSim(camera, cameraProp);
 
-            Translation3d robotToCameraTrl = new Translation3d(0.1, 0, 0.5);
-            // and pitched 15 degrees up.
-            Rotation3d robotToCameraRot = new Rotation3d(0, Math.toRadians(-15), 0);
+            Translation3d robotToCameraTrl = new Translation3d(-0.15, 0.15, 0.6);
+            Rotation3d robotToCameraRot = new Rotation3d(0, Math.toRadians(-55), 0);
             Transform3d robotToCamera = new Transform3d(robotToCameraTrl, robotToCameraRot);
 
-            // Add this camera to the vision system simulation with the given
-            // robot-to-camera transform.
             visionSim.addCamera(cameraSim, robotToCamera);
         }
     }
@@ -61,8 +52,12 @@ public class VisionSubsystem extends SubsystemBase {
         }
 
         camera.getAllUnreadResults().forEach((result) -> {
-            if (result.getBestTarget().getFiducialId() > 0) {
+            if (result.hasTargets()) {
+                var target = result.getBestTarget();
 
+                if (target.getFiducialId() > 0) {
+                    // Your logic here
+                }
             }
         });
     }
@@ -70,7 +65,7 @@ public class VisionSubsystem extends SubsystemBase {
     public Optional<PhotonTrackedTarget> getClosestTag() {
         return camera.getLatestResult().hasTargets()
                 ? camera.getLatestResult().getTargets().stream()
-                        .filter(t -> t.getFiducialId() > 0) // AprilTags only
+                        .filter(t -> t.getFiducialId() > 0)
                         .min(Comparator.comparingDouble(
                                 t -> t.getBestCameraToTarget().getTranslation().getNorm()))
                 : Optional.empty();

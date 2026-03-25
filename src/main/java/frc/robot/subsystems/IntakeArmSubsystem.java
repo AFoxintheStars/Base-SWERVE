@@ -54,7 +54,7 @@ public class IntakeArmSubsystem extends SubsystemBase {
   }
 
   public Command stow() {
-    return arm.runTo(Rotations.of(0), Degrees.of(3));
+    return arm.runTo(Degrees.of(0), Degrees.of(3));
   }
 
   // ==================== ACCESSORS ====================

@@ -11,9 +11,8 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
-import static edu.wpi.first.units.Units.RotationsPerSecondPerSecond;
 
-import java.lang.constant.Constable;
+
 import java.util.function.Supplier;
 
 import com.revrobotics.spark.SparkMax;
@@ -32,12 +31,13 @@ import yams.motorcontrollers.local.SparkWrapper;
 public class TurretFlywheelSubsystem extends SubsystemBase {
 
     private FlyWheel shooter;
+    private SmartMotorController smc;
 
     public TurretFlywheelSubsystem() {
         SmartMotorControllerConfig smcConfig = Constants.ShooterConstants.SMC_CONFIG
         .withSubsystem(this);
 
-        SmartMotorController smc = new SparkWrapper(
+         smc = new SparkWrapper(
             new SparkMax(Constants.ShooterConstants.CAN_ID, MotorType.kBrushless),
             Constants.ShooterConstants.MOTOR,
              smcConfig
