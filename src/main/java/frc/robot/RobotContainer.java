@@ -33,7 +33,7 @@ import frc.robot.subsystems.LEDSubsystem;
 import frc.robot.subsystems.PrefeedSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
-import frc.robot.subsystems.TurretShooterSubsystem;
+import frc.robot.subsystems.TurretFlywheelSubsystem;
 
 import java.io.File;
 import swervelib.SwerveInputStream;
@@ -52,7 +52,7 @@ public class RobotContainer
   private final IntakeArmSubsystem intakeArm = new IntakeArmSubsystem();
   private final IntakeSubsystem intake = new IntakeSubsystem();
   private final PrefeedSubsystem prefeed = new PrefeedSubsystem();
-  private final TurretShooterSubsystem shooter = new TurretShooterSubsystem();
+  private final TurretFlywheelSubsystem shooter = new TurretFlywheelSubsystem();
 
   private final SendableChooser<Command> autoChooser;
 
@@ -197,12 +197,6 @@ public class RobotContainer
     {
       driverJoystick.button(4).onTrue((Commands.runOnce(drivebase::zeroGyro)));
       driverJoystick.button(3).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-
-      driverJoystick.button(11).whileTrue(intakeArm.set(0.7));
-      driverJoystick.button(12).whileTrue(intakeArm.set(-0.7));
-
-      driverJoystick.button(1).whileTrue(intake.intake());
-      driverJoystick.button(2).whileTrue(intake.outtake());
 
       driverJoystick.button(5).whileTrue(prefeed.runPrefeed(0.8));
 
