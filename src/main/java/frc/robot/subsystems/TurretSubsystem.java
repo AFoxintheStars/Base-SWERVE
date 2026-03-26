@@ -32,18 +32,15 @@ import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.local.SparkWrapper;
-import yams.units.EasyCRT;
-import yams.units.EasyCRTConfig;
 
 public class TurretSubsystem extends SubsystemBase {
-        private final SparkMax turretMotor = new SparkMax(16, MotorType.kBrushless);
+        private final SparkMax turretMotor = new SparkMax(17, MotorType.kBrushless);
 
-        private EasyCRT solver;
         private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
                         .withControlMode(ControlMode.CLOSED_LOOP)
-                        .withClosedLoopController(4, 0, 0, DegreesPerSecond.of(180), DegreesPerSecondPerSecond.of(90))
+                        .withClosedLoopController(50, 0, 0, DegreesPerSecond.of(1), DegreesPerSecondPerSecond.of(90))
                         // Configure Motor and Mechanism properties
-                        .withGearing(new MechanismGearing(GearBox.fromReductionStages(12.5)))
+                        .withGearing(new MechanismGearing(GearBox.fromReductionStages(1,1)))
                         .withIdleMode(MotorMode.BRAKE)
                         .withMotorInverted(false)
                         // Setup Telemetry
