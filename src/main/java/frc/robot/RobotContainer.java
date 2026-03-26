@@ -121,6 +121,8 @@ public class RobotContainer
     DriverStation.silenceJoystickConnectionWarning(true);
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
 
+    intake.setDefaultCommand(intake.set(0));
+
     autoChooser = AutoBuilder.buildAutoChooser();
 
     autoChooser.setDefaultOption("Do Nothing", Commands.none());
@@ -200,13 +202,11 @@ public class RobotContainer
 
       driverJoystick.button(5).whileTrue(prefeed.runPrefeed(0.8));
 
-      driverJoystick.button(10).whileTrue(intakeArm.runToAngle(Degrees.of(80)));
-      driverJoystick.button(9).whileTrue(intakeArm.runToAngle(Degrees.of(5)));
+      driverJoystick.button(10).whileTrue(intakeArm.set(0.8));
+      driverJoystick.button(9).whileTrue(intakeArm.set(-0.8));
            
       driverJoystick.button(1).whileTrue(intake.set(0.8));
-      driverJoystick.button(1).whileFalse(intake.set(0));
       driverJoystick.button(2).whileTrue(intake.set(-0.8));
-      driverJoystick.button(2).whileFalse(intake.set(0));
 
       driverJoystick.button(11).whileTrue(climber.climbUp());
       driverJoystick.button(12).whileTrue(climber.climbDown());

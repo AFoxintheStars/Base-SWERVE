@@ -1,129 +1,120 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
-
 package frc.robot.subsystems;
 
-import frc.robot.Constants;
-
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-
+import static edu.wpi.first.units.Units.Amps;
+import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Pounds;
+import static edu.wpi.first.units.Units.RPM;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.RotationsPerSecondPerSecond;
+import static edu.wpi.first.units.Units.Second;
+import static edu.wpi.first.units.Units.Seconds;
+import static edu.wpi.first.units.Units.Volts;
 
-
-import java.util.function.Supplier;
-
+import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
-
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
+import java.util.function.Supplier;
+import yams.gearing.GearBox;
+import yams.gearing.MechanismGearing;
 import yams.mechanisms.config.FlyWheelConfig;
 import yams.mechanisms.velocity.FlyWheel;
 import yams.motorcontrollers.SmartMotorController;
 import yams.motorcontrollers.SmartMotorControllerConfig;
+import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.local.SparkWrapper;
 
-public class TurretFlywheelSubsystem extends SubsystemBase {
+public class TurretFlywheelSubsystem extends SubsystemBase
+{
+  private final Distance flywheelDiameter = Inches.of(3);
+  private final SparkMax flywheelMotor    = new SparkMax(15, MotorType.kBrushless);
 
-    private FlyWheel shooter;
-    private SmartMotorController smc;
+  private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
+      .withClosedLoopController(0.00016541, 0, 0, RPM.of(5000), RotationsPerSecondPerSecond.of(2500))
+      .withGearing(new MechanismGearing(GearBox.fromReductionStages(3, 4)))
+      .withIdleMode(MotorMode.COAST)
+      .withTelemetry("FlywheelMotor", TelemetryVerbosity.HIGH)
+      .withStatorCurrentLimit(Amps.of(40))
+      .withMotorInverted(false)
+      .withClosedLoopRampRate(Seconds.of(0.25))
+      .withOpenLoopRampRate(Seconds.of(0.25))
+      .withFeedforward(new SimpleMotorFeedforward(0.27937, 0.089836, 0.014557))
+      .withSimFeedforward(new SimpleMotorFeedforward(0.27937, 0.089836, 0.014557))
+      .withControlMode(ControlMode.CLOSED_LOOP);
 
-    public TurretFlywheelSubsystem() {
-        SmartMotorControllerConfig smcConfig = Constants.ShooterConstants.SMC_CONFIG
-        .withSubsystem(this);
+  private final SmartMotorController motor = new SparkWrapper(flywheelMotor, DCMotor.getNEO(1), motorConfig);
 
-         smc = new SparkWrapper(
-            new SparkMax(Constants.ShooterConstants.CAN_ID, MotorType.kBrushless),
-            Constants.ShooterConstants.MOTOR,
-             smcConfig
-        );
+  private final FlyWheelConfig flywheelConfig = new FlyWheelConfig(motor)
+      .withDiameter(Inches.of(4))
+      .withMass(Pounds.of(1))
+      .withTelemetry("FlywheelMech", TelemetryVerbosity.HIGH)
+      .withSoftLimit(RPM.of(-5000), RPM.of(5000))
+      .withSpeedometerSimulation(RPM.of(7500));
 
-        FlyWheelConfig shooterConfig = Constants.ShooterConstants.FLYWHEEL_CONFIG
-        .withSmartMotorController(smc);
+  private final FlyWheel flywheel = new FlyWheel(flywheelConfig);
 
-        this.shooter = new FlyWheel(shooterConfig);
-    }
+  public TurretFlywheelSubsystem()
+  {
+  }
 
-    // ==================== COMMANDS ====================
+  public AngularVelocity getVelocity()
+  {
+    return flywheel.getSpeed();
+  }
 
-    /**
-     * Gets the current velocity of the shooter.
-     *
-     * @return Shooter velocity.
-     */
-    public AngularVelocity getVelocity() {
-        return shooter.getSpeed();
-    }
-    
-    /**
-     * Set the shooter velocity setpoint.
-     *
-     * @param speed Speed to set
-     */
-    public void setVelocitySetpoint(AngularVelocity speed) {
-        shooter.setMechanismVelocitySetpoint(speed);
-    }
-    
-    /**
-     * Set the shooter velocity.
-     *
-     * @param speed Speed to set.
-     * @return {@link edu.wpi.first.wpilibj2.command.RunCommand}
-     */
-    public Command setVelocity(AngularVelocity speed) {
-        return shooter.run(speed);
-    }
+  public Command setVelocity(AngularVelocity speed)
+  {
+    return flywheel.setSpeed(speed);
+  }
 
-    /**
-     * Set the dutycycle of the shooter.
-     *
-     * @param dutyCycle DutyCycle to set.
-     * @return {@link edu.wpi.first.wpilibj2.command.RunCommand}
-     */
-    public Command set(double dutyCycle) {
-        return shooter.set(dutyCycle);
-    }
+  public Command setDutyCycle(double dutyCycle)
+  {
+    return flywheel.set(dutyCycle);
+  }
 
-      public Command setVelocity(Supplier<AngularVelocity> speed)
-    {
-        return shooter.setSpeed(speed);
-    }
+  public Command setVelocity(Supplier<AngularVelocity> speed)
+  {
+    return flywheel.setSpeed(speed);
+  }
 
-     public Command setDutyCycle(Supplier<Double> dutyCycle)
-    {
-        return shooter.set(dutyCycle);
-    }
+  public Command setDutyCycle(Supplier<Double> dutyCycle)
+  {
+    return flywheel.set(dutyCycle);
+  }
 
-    // ==================== ACCESSORS ====================
-  
-    public FlyWheel getFlyWheel() {
-    return shooter;
-    }
+  public Command sysId()
+  {
+    return flywheel.sysId(Volts.of(10), Volts.of(1).per(Second), Seconds.of(5));
+  }
 
-    @Override
-    public void periodic() {
-    shooter.updateTelemetry();
-    }
+  @Override
+  public void periodic()
+  {
+    flywheel.updateTelemetry();
+  }
 
-    @Override
-    public void simulationPeriodic() {
-    shooter.simIterate();
-    }
+  @Override
+  public void simulationPeriodic()
+  {
+    flywheel.simIterate();
+  }
 
-    public Command setRPM(LinearVelocity speed)
-    {
-        return shooter.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / Constants.ShooterConstants.FLYWHEEL_DIAMETER.times(Math.PI).in(Meters)));
-    }
+  public Command setRPM(LinearVelocity speed)
+  {
+    return flywheel.setSpeed(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+  }
 
-
-    public void setRPMDirect(LinearVelocity speed)
-    {
-        smc.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / Constants.ShooterConstants.FLYWHEEL_DIAMETER.times(Math.PI).in(Meters)));
-    }
-
+  public void setRPMDirect(LinearVelocity speed)
+  {
+    motor.setVelocity(RotationsPerSecond.of(speed.in(MetersPerSecond) / flywheelDiameter.times(Math.PI).in(Meters)));
+  }
 }

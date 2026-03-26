@@ -4,28 +4,8 @@
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.*;
-
-import com.revrobotics.spark.SparkMax;
-
-import edu.wpi.first.math.controller.ArmFeedforward;
-import edu.wpi.first.math.controller.ElevatorFeedforward;
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
-import yams.gearing.GearBox;
-import yams.gearing.MechanismGearing;
-import yams.mechanisms.config.ArmConfig;
-import yams.mechanisms.config.ElevatorConfig;
-import yams.mechanisms.config.FlyWheelConfig;
-import yams.mechanisms.config.PivotConfig;
-import yams.motorcontrollers.SmartMotorControllerConfig;
-import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
-import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
-import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
-
 import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.units.measure.Distance;
 import swervelib.math.Matter;
 
 /**
@@ -55,96 +35,4 @@ public final class Constants
     public static final double TURN_CONSTANT    = 6;
   }
 
-  // ==================== INTAKE ARM ====================
-  public static final class ArmConstants {
-    public static final int CAN_ID = 9;
-    public static final DCMotor MOTOR = DCMotor.getNEO(1);
-    
-    public static final SmartMotorControllerConfig SMC_CONFIG = 
-        new SmartMotorControllerConfig()
-            .withControlMode(ControlMode.CLOSED_LOOP)
-            .withGearing(new MechanismGearing(GearBox.fromReductionStages(9, 5, 3)))
-            .withClosedLoopController(5, 0, 0.1)
-            .withFeedforward(new ArmFeedforward(0.1, 0.3, 0.5, 0.01))
-            .withTrapezoidalProfile(RotationsPerSecond.of(1.0), RotationsPerSecondPerSecond.of(2.0))
-            .withTelemetry("ArmMotor", TelemetryVerbosity.HIGH)
-            .withIdleMode(MotorMode.BRAKE);
-    
-    public static final ArmConfig ARM_CONFIG = 
-        new ArmConfig()
-            .withLength(Inches.of(21.75))
-            .withMass(Pounds.of(13.5))
-            .withHardLimit(Degrees.of(-0.3), Degrees.of(0.3))
-            .withSoftLimits(Degrees.of(-0.25), Degrees.of(0.25))
-            .withStartingPosition(Degrees.of(0))
-            .withTelemetry("Arm", TelemetryVerbosity.HIGH);
-  }
-
-  // ==================== INTAKE WHEELS ====================
-  public static final class IntakeConstants {
-    public static final int CAN_ID = 10;
-    public static final DCMotor MOTOR = DCMotor.getNEO(1);
-
-    public static final SmartMotorControllerConfig SMC_CONFIG = 
-        new SmartMotorControllerConfig()
-            .withGearing(new MechanismGearing(GearBox.fromReductionStages(1)))
-            .withClosedLoopController(1, 0, 0)
-            .withFeedforward(new SimpleMotorFeedforward(0, 0, 0))
-            .withIdleMode(MotorMode.COAST);
-
-    public static final FlyWheelConfig INTAKE_WHEEL_CONFIG = 
-        new FlyWheelConfig()
-            .withDiameter(Inches.of(4))
-            .withMass(Pounds.of(0.5))
-            .withSoftLimit(RPM.of(0), RPM.of(6000))
-            .withTelemetry("IntakeWheel", TelemetryVerbosity.HIGH);
-  }
-  
-  // ==================== TURRET SHOOTER ====================
-  public static final class ShooterConstants {
-    public static final int CAN_ID = 15;
-    public static final DCMotor MOTOR = DCMotor.getNEO(1);  
-    public static final Distance FLYWHEEL_DIAMETER = Inches.of(4);
-    
-    public static final SmartMotorControllerConfig SMC_CONFIG = 
-        new SmartMotorControllerConfig()
-            .withGearing(new MechanismGearing(GearBox.fromReductionStages(1)))
-            .withClosedLoopController(1, 0, 0)
-            .withFeedforward(new SimpleMotorFeedforward(0.1, 0.12, 0.01))
-            .withSimFeedforward(new SimpleMotorFeedforward(0, 0, 0))
-            .withClosedLoopRampRate(Seconds.of(0.25))
-            .withOpenLoopRampRate(Seconds.of(0.25))
-            .withStatorCurrentLimit(Amps.of(40))
-            .withIdleMode(MotorMode.COAST);
-    
-    public static final FlyWheelConfig FLYWHEEL_CONFIG = 
-        new FlyWheelConfig()
-            .withDiameter(Inches.of(4))
-            .withMass(Pounds.of(0.5))
-            .withSoftLimit(RPM.of(0), RPM.of(6000))
-            .withTelemetry("Shooter", TelemetryVerbosity.HIGH)
-            .withSpeedometerSimulation(RPM.of(7500));
-  }
-
-  // ==================== TURRET GEAR ====================
-  public static final class TurretConstants {
-    public static final int CAN_ID = 16;
-    public static final DCMotor MOTOR = DCMotor.getNEO(1);
-    
-    public static final SmartMotorControllerConfig SMC_CONFIG = 
-        new SmartMotorControllerConfig()
-            .withControlMode(ControlMode.CLOSED_LOOP)
-            .withClosedLoopController(4, 0, 0, DegreesPerSecond.of(180), DegreesPerSecondPerSecond.of(90))
-            // Configure Motor and Mechanism properties
-            .withGearing(new MechanismGearing(GearBox.fromReductionStages(12.5)))
-            .withIdleMode(MotorMode.BRAKE)
-            .withMotorInverted(false)
-            // Setup Telemetry
-            .withTelemetry("TurretMotor", TelemetryVerbosity.HIGH)
-            // Power Optimization
-            .withStatorCurrentLimit(Amps.of(40))
-            .withClosedLoopRampRate(Seconds.of(0.25))
-            .withOpenLoopRampRate(Seconds.of(0.25));
-  
-  }
 }

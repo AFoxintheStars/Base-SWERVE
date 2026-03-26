@@ -1,77 +1,73 @@
 package frc.robot.subsystems;
-import frc.robot.Constants;
 
+import com.ctre.phoenix6.hardware.TalonFXS;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
-import static edu.wpi.first.units.Units.Second;
-import static edu.wpi.first.units.Units.Seconds;
-import static edu.wpi.first.units.Units.Volts;
-import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.wpilibj.DutyCycleEncoder;
-
+import static edu.wpi.first.units.Units.Amps;
 import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.DegreesPerSecond;
+import static edu.wpi.first.units.Units.DegreesPerSecondPerSecond;
 import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.Pounds;
 import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.Second;
+import static edu.wpi.first.units.Units.Seconds;
+import static edu.wpi.first.units.Units.Volts;
 
 import java.util.function.Supplier;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
 import yams.motorcontrollers.SmartMotorControllerConfig;
-import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.wpilibj.DutyCycleEncoder;
+import yams.gearing.GearBox;
+import yams.gearing.MechanismGearing;
 import yams.mechanisms.config.PivotConfig;
 import yams.mechanisms.positional.Pivot;
 import yams.motorcontrollers.SmartMotorController;
+import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.local.SparkWrapper;
 import yams.units.EasyCRT;
 import yams.units.EasyCRTConfig;
 
 public class TurretSubsystem extends SubsystemBase {
-
-        private final Pivot turret;
-        private final SmartMotorController smc;
-
-        private final DutyCycleEncoder encoder1 = new DutyCycleEncoder(1);
-        private final DutyCycleEncoder encoder2 = new DutyCycleEncoder(0);
+        private final SparkMax turretMotor = new SparkMax(16, MotorType.kBrushless);
 
         private EasyCRT solver;
+        private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
+                        .withControlMode(ControlMode.CLOSED_LOOP)
+                        .withClosedLoopController(4, 0, 0, DegreesPerSecond.of(180), DegreesPerSecondPerSecond.of(90))
+                        // Configure Motor and Mechanism properties
+                        .withGearing(new MechanismGearing(GearBox.fromReductionStages(12.5)))
+                        .withIdleMode(MotorMode.BRAKE)
+                        .withMotorInverted(false)
+                        // Setup Telemetry
+                        .withTelemetry("TurretMotor", TelemetryVerbosity.HIGH)
+                        // Power Optimization
+                        .withStatorCurrentLimit(Amps.of(40))
+                        .withClosedLoopRampRate(Seconds.of(0.25))
+                        .withOpenLoopRampRate(Seconds.of(0.25));
+        private final SmartMotorController turretSMC = new SparkWrapper(turretMotor,
+                        DCMotor.getNEO(1),
+                        motorConfig);
+
+        private final PivotConfig turretConfig = new PivotConfig(turretSMC)
+                        .withStartingPosition(Degrees.of(0)) // Starting position of the Pivot
+                        .withWrapping(Degrees.of(0), Degrees.of(360)) // Wrapping enabled bc the pivot can spin
+                                                                      // infinitely
+                        .withHardLimit(Degrees.of(0), Degrees.of(720)) // Hard limit bc wiring prevents infinite
+                                                                       // spinning
+                        .withTelemetry("TurretMech", TelemetryVerbosity.HIGH) // Telemetry
+                        .withMOI(Meters.of(0.25), Pounds.of(4)); // MOI Calculation
+
+        private final Pivot turret = new Pivot(turretConfig);
 
         public TurretSubsystem() {
-                SmartMotorControllerConfig smcConfig = Constants.TurretConstants.SMC_CONFIG
-                .withSubsystem(this);
-
-                smc = new SparkWrapper(
-                new SparkMax(Constants.TurretConstants.CAN_ID, MotorType.kBrushless),
-                Constants.TurretConstants.MOTOR,
-                smcConfig
-                );
-
-                PivotConfig turretConfig = new PivotConfig(smc)
-                        .withStartingPosition(Degrees.of(0))
-                        .withTelemetry("TurretMech", TelemetryVerbosity.HIGH);
-
-                this.turret = new Pivot(turretConfig);
-
-                // ================= CRT SETUP =================
-
-                var easyCrtConfig = new EasyCRTConfig(
-                        () -> Rotations.of(encoder1.get()),
-                        () -> Rotations.of(encoder2.get())
-                )
-                .withCommonDriveGear(1.0, 200, 19, 21)
-                .withAbsoluteEncoderOffsets(Rotations.of(0.0), Rotations.of(0.0))
-                .withMechanismRange(Rotations.of(-1.0), Rotations.of(2.0))
-                .withMatchTolerance(Rotations.of(0.05))
-                .withAbsoluteEncoderInversions(false, false);
-
-                solver = new EasyCRT(easyCrtConfig);
-
-                solver.getAngleOptional().ifPresent(angle -> {
-                smc.setPosition(angle);
-                });
         }
 
         public Command setAngle(Angle angle) {
@@ -79,7 +75,7 @@ public class TurretSubsystem extends SubsystemBase {
         }
 
         public void setAngleDirect(Angle angle) {
-                smc.setPosition(angle);
+              turretSMC.setPosition(angle);
         }
 
         public Command setAngle(Supplier<Angle> angleSupplier) {
@@ -92,9 +88,9 @@ public class TurretSubsystem extends SubsystemBase {
 
         public Command sysId() {
                 return turret.sysId(
-                        Volts.of(4.0), 
-                        Volts.per(Second).of(0.5),
-                        Seconds.of(8.0)
+                                Volts.of(4.0), // maximumVoltage
+                                Volts.per(Second).of(0.5), // step
+                                Seconds.of(8.0) // duration
                 );
         }
 
@@ -109,8 +105,6 @@ public class TurretSubsystem extends SubsystemBase {
         @Override
         public void periodic() {
                 turret.updateTelemetry();
-                // System.out.println("CRT Status: " + solver.getLastStatus());
-                // System.out.println("CRT Error: " + solver.getLastErrorRotations());
         }
 
         @Override
