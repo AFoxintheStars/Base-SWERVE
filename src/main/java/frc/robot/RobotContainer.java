@@ -22,15 +22,16 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.subsystems.ClimberSubsystem;
+import frc.robot.subsystems.HoodSubsystem;
 import frc.robot.subsystems.IntakeArmSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.PrefeedSubsystem;
-import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
@@ -47,14 +48,23 @@ import swervelib.SwerveInputStream;
 public class RobotContainer
 {
   final         CommandJoystick driverJoystick = new CommandJoystick(0);
+  
+  private final java.util.function.Supplier<Double> throttle = () -> {
+  double raw = (driverJoystick.getRawAxis(4) + 1.0) / 2.0; // 0 → 1
+  return raw * raw;
+  };
+
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve"));
   private final IntakeArmSubsystem intakeArm = new IntakeArmSubsystem();
   private final IntakeSubsystem intake = new IntakeSubsystem();
   private final PrefeedSubsystem prefeed = new PrefeedSubsystem();
   private final ClimberSubsystem climber = new ClimberSubsystem();
+  private final TurretSubsystem turret = new TurretSubsystem();
+  private final HoodSubsystem hood = new HoodSubsystem();
+  private final TurretFlywheelSubsystem turretFlywheel = new TurretFlywheelSubsystem();
   public VisionSubsystem vision = new VisionSubsystem();
-  public ShooterSubsystem shooter = new ShooterSubsystem(vision);
+  // public ShooterSubsystem shooter = new ShooterSubsystem(vision);
 
   private final SendableChooser<Command> autoChooser;
 
@@ -62,11 +72,10 @@ public class RobotContainer
    * Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
    */
   SwerveInputStream driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
-                                                                  () -> driverJoystick.getY() * -1,
-                                                                  () -> driverJoystick.getX() * -1)
-                                                              .withControllerRotationAxis(() -> driverJoystick.getZ() * -1)
+                                                                  () -> driverJoystick.getY() * throttle.get(),
+                                                                  () -> driverJoystick.getX() * throttle.get())
+                                                              .withControllerRotationAxis(() -> driverJoystick.getZ() * throttle.get())
                                                               .deadband(OperatorConstants.DEADBAND)
-                                                              .scaleTranslation(0.8)
                                                               .allianceRelativeControl(true);
 
   /**
@@ -122,6 +131,16 @@ public class RobotContainer
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
 
     intake.setDefaultCommand(intake.set(0));
+
+    turretFlywheel.setDefaultCommand(turretFlywheel.setDutyCycle(0));
+
+    turret.setDefaultCommand(
+        turret.manualControl(() -> driverJoystick.getHID().getPOV())
+    );
+
+    hood.setDefaultCommand(
+        hood.manualControl(() -> driverJoystick.getHID().getPOV())
+    );
 
     autoChooser = AutoBuilder.buildAutoChooser();
 
@@ -184,23 +203,11 @@ public class RobotContainer
 //          drivebase.driveToPose(
 //              new Pose2d(new Translation2d(4, 4), Rotation2d.fromDegrees(0)))
 //                              );
-
     }
-    if (DriverStation.isTest())
-    {
-      drivebase.setDefaultCommand(driveFieldOrientedAnglularVelocity); // Overrides drive command above!
 
-      driverJoystick.button(3).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-      driverJoystick.button(4).onTrue((Commands.runOnce(drivebase::zeroGyro)));
-      driverJoystick.button(2).whileTrue(drivebase.centerModulesCommand());
-      // driverJoystick.button(0).onTrue(Commands.none());
-      // driverJoystick.button(0).onTrue(Commands.none());
-    } else
-    {
-      driverJoystick.button(3).onTrue((Commands.runOnce(drivebase::zeroGyro)));
-      driverJoystick.button(4).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
+      driverJoystick.button(5).whileTrue(turretFlywheel.setDutyCycle(0.8));
 
-      driverJoystick.button(5).whileTrue(prefeed.runPrefeed(0.8));
+      driverJoystick.button(6).whileTrue(prefeed.runPrefeed(-0.8));
 
       driverJoystick.button(10).whileTrue(intakeArm.set(0.8));
       driverJoystick.button(9).whileTrue(intakeArm.set(-0.8));
@@ -210,9 +217,6 @@ public class RobotContainer
 
       driverJoystick.button(11).whileTrue(climber.climbUp());
       driverJoystick.button(12).whileTrue(climber.climbDown());
-
-      driverJoystick.button(6).whileTrue(shooter.runShooter()).whileFalse(shooter.stopShooter());
-  }
     }
 
   /**
