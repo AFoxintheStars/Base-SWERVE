@@ -30,6 +30,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -74,8 +75,8 @@ public class SwerveSubsystem extends SubsystemBase
     Pose2d startingPose = blueAlliance ? new Pose2d(new Translation2d(Meter.of(3.5),
                                                                       Meter.of(0.5)),
                                                     Rotation2d.fromDegrees(0))
-                                       : new Pose2d(new Translation2d(Meter.of(4),
-                                                                      Meter.of(5)),
+                                       : new Pose2d(new Translation2d(Meter.of(3.5),
+                                                                      Meter.of(0.5)),
                                                     Rotation2d.fromDegrees(180));
     // Configure the Telemetry before creating the SwerveDrive to avoid unnecessary objects being created.
     SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
@@ -539,19 +540,18 @@ public class SwerveSubsystem extends SubsystemBase
    * <p>
    * If red alliance rotate the robot 180 after the drviebase zero command
    */
-  public void zeroGyroWithAlliance()
+    public Command zeroGyroWithAllianceCommand()
   {
-    if (isRedAlliance())
-    {
-      zeroGyro();
-      //Set the pose 180 degrees
-      resetOdometry(new Pose2d(getPose().getTranslation(), Rotation2d.fromDegrees(180)));
-    } else
-    {
-      zeroGyro();
-    }
+    return runOnce(() -> {
+      DriverStation.getAlliance().ifPresent(alliance -> {
+        swerveDrive.zeroGyro();
+        if (alliance == DriverStation.Alliance.Red)
+        {
+          swerveDrive.resetOdometry(new Pose2d(getPose().getTranslation(), Rotation2d.k180deg));
+        }
+      });
+    });
   }
-
   /**
    * Sets the drive motors to brake/coast mode.
    *
@@ -680,5 +680,10 @@ public class SwerveSubsystem extends SubsystemBase
   public SwerveDrive getSwerveDrive()
   {
     return swerveDrive;
+  }
+
+  public double getSpeedMetersPerSecond() {
+    var speeds = getSwerveDrive().getRobotVelocity();
+    return Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
   }
 }

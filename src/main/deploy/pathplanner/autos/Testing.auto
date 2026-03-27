@@ -7,13 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Tower Check"
+            "pathName": "Depot"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Depot Intake"
           }
         }
       ]
     }
   },
-  "resetOdom": true,
+  "resetOdom": false,
   "folder": null,
   "choreoAuto": false
 }

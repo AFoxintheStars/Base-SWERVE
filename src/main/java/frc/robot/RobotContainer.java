@@ -50,8 +50,8 @@ public class RobotContainer
   final         CommandJoystick driverJoystick = new CommandJoystick(0);
   
   private final java.util.function.Supplier<Double> throttle = () -> {
-  double raw = (driverJoystick.getRawAxis(4) + 1.0) / 2.0; // 0 → 1
-  return raw * raw;
+  double raw = (1.0 - driverJoystick.getRawAxis(4)) / 2.0; // 0 → 1
+  return 0.1 + 0.9 * raw * raw;
   };
 
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
@@ -72,10 +72,12 @@ public class RobotContainer
    * Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
    */
   SwerveInputStream driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
-                                                                  () -> driverJoystick.getY() * throttle.get(),
-                                                                  () -> driverJoystick.getX() * throttle.get())
-                                                              .withControllerRotationAxis(() -> driverJoystick.getZ() * throttle.get())
+                                                                  () -> driverJoystick.getY() * -1,
+                                                                  () -> driverJoystick.getX() * -1
+                                                                )
+                                                              .withControllerRotationAxis(() -> driverJoystick.getZ() * -1)
                                                               .deadband(OperatorConstants.DEADBAND)
+                                                              .scaleTranslation(0.8)
                                                               .allianceRelativeControl(true);
 
   /**
@@ -134,6 +136,8 @@ public class RobotContainer
 
     turretFlywheel.setDefaultCommand(turretFlywheel.setDutyCycle(0));
 
+    intakeArm.setDefaultCommand(intakeArm.set(0));
+
     turret.setDefaultCommand(
         turret.manualControl(() -> driverJoystick.getHID().getPOV())
     );
@@ -149,6 +153,8 @@ public class RobotContainer
     autoChooser.addOption("Drive Forward", drivebase.driveForward().withTimeout(1));
 
     SmartDashboard.putData("Auto Chooser", autoChooser);
+
+    SmartDashboard.putNumber("Robot Speed (m/s)", drivebase.getSpeedMetersPerSecond());
   }
 
   /**
@@ -205,12 +211,18 @@ public class RobotContainer
 //                              );
     }
 
-      driverJoystick.button(5).whileTrue(turretFlywheel.setDutyCycle(0.8));
+      driverJoystick.button(3).onTrue(drivebase.zeroGyroWithAllianceCommand());
 
-      driverJoystick.button(6).whileTrue(prefeed.runPrefeed(-0.8));
+      driverJoystick.button(5).whileTrue(turretFlywheel.setDutyCycle(0.9));
 
-      driverJoystick.button(10).whileTrue(intakeArm.set(0.8));
-      driverJoystick.button(9).whileTrue(intakeArm.set(-0.8));
+      driverJoystick.button(5).whileTrue(
+          new WaitCommand(0.5).andThen(prefeed.runPrefeed(0.8))
+      );
+
+      driverJoystick.button(6).whileTrue(prefeed.runPrefeed(-0.6));
+
+      driverJoystick.button(10).whileTrue(intakeArm.set(0.5));
+      driverJoystick.button(9).whileTrue(intakeArm.set(-0.3));
            
       driverJoystick.button(1).whileTrue(intake.set(0.8));
       driverJoystick.button(2).whileTrue(intake.set(-0.8));

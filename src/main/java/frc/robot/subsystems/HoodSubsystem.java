@@ -51,7 +51,9 @@ public class HoodSubsystem extends SubsystemBase {
     public void updateControl() {
         double current = getAngleDeg();
 
-        double pidOutput = pid.calculate(current, targetAngleDeg);
+        double pidOutput = 0;
+
+        // double pidOutput = pid.calculate(current, targetAngleDeg);
 
         double ffOutput = 0;
 
@@ -63,7 +65,7 @@ public class HoodSubsystem extends SubsystemBase {
         output = Math.max(-1, Math.min(1, output));
 
         if (Math.abs(pid.getError()) < 1.0) {
-            servo.set(0.5); // stop
+            servo.set(0.5);
         } else {
             servo.set(output * 0.5 + 0.5);
         }
