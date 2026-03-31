@@ -20,7 +20,7 @@ public class HoodSubsystem extends SubsystemBase {
     private final DutyCycleEncoder encoder = new DutyCycleEncoder(3); // DIO port
 
     // PID for position control
-    private final PIDController pid = new PIDController(0.02, 0, 0);
+    private final PIDController pid = new PIDController(0.05, 0, 0);
 
     // Feedforward (optional but recommended)
     private final ArmFeedforward ff = new ArmFeedforward(0.2, 0.5, 0.1);
@@ -30,6 +30,8 @@ public class HoodSubsystem extends SubsystemBase {
     // Limits
     private final double MIN_ANGLE = 5;
     private final double MAX_ANGLE = 100;
+
+    private boolean manualMode = false;
 
     public HoodSubsystem() {
         pid.setTolerance(1.0); // degrees
@@ -49,9 +51,13 @@ public class HoodSubsystem extends SubsystemBase {
     public void updateControl() {
         double current = getAngleDeg();
 
-        double pidOutput = pid.calculate(current, targetAngleDeg);
+        double pidOutput = 0;
 
-        double ffOutput = ff.calculate(Math.toRadians(targetAngleDeg), 0);
+        // double pidOutput = pid.calculate(current, targetAngleDeg);
+
+        double ffOutput = 0;
+
+       // double ffOutput = ff.calculate(Math.toRadians(targetAngleDeg), 0);
 
         double output = pidOutput + ffOutput;
 
@@ -59,7 +65,7 @@ public class HoodSubsystem extends SubsystemBase {
         output = Math.max(-1, Math.min(1, output));
 
         if (Math.abs(pid.getError()) < 1.0) {
-            servo.set(0.5); // stop
+            servo.set(0.5);
         } else {
             servo.set(output * 0.5 + 0.5);
         }
@@ -105,8 +111,34 @@ public class HoodSubsystem extends SubsystemBase {
         return setDutyCycle(() -> value);
     }
 
+    public Command manualControl(Supplier<Integer> povSupplier) {
+        return run(() -> {
+            int pov = povSupplier.get();
+
+            if (pov == 0) {
+                manualMode = true;
+                servo.set(0.8);
+
+            } else if (pov == 180) {
+                manualMode = true;
+                servo.set(-0.8);
+
+            } else {
+                if (manualMode) {
+                    // HOLD current position
+                    setTargetAngle(getAngleDeg());
+                }
+
+                manualMode = false;
+                servo.set(0.5);
+            }
+        });
+    }
+
     @Override
     public void periodic() {
+    if (!manualMode) {
         updateControl();
+    }
     }
 }

@@ -22,15 +22,16 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.subsystems.ClimberSubsystem;
+import frc.robot.subsystems.HoodSubsystem;
 import frc.robot.subsystems.IntakeArmSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.PrefeedSubsystem;
-import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
@@ -47,14 +48,23 @@ import swervelib.SwerveInputStream;
 public class RobotContainer
 {
   final         CommandJoystick driverJoystick = new CommandJoystick(0);
+  
+  private final java.util.function.Supplier<Double> throttle = () -> {
+  double raw = (1.0 - driverJoystick.getRawAxis(4)) / 2.0; // 0 → 1
+  return 0.1 + 0.9 * raw * raw;
+  };
+
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve"));
   private final IntakeArmSubsystem intakeArm = new IntakeArmSubsystem();
   private final IntakeSubsystem intake = new IntakeSubsystem();
   private final PrefeedSubsystem prefeed = new PrefeedSubsystem();
   private final ClimberSubsystem climber = new ClimberSubsystem();
+  private final TurretSubsystem turret = new TurretSubsystem();
+  private final HoodSubsystem hood = new HoodSubsystem();
+  private final TurretFlywheelSubsystem turretFlywheel = new TurretFlywheelSubsystem();
   public VisionSubsystem vision = new VisionSubsystem();
-  public ShooterSubsystem shooter = new ShooterSubsystem(vision);
+  // public ShooterSubsystem shooter = new ShooterSubsystem(vision);
 
   private final SendableChooser<Command> autoChooser;
 
@@ -63,7 +73,8 @@ public class RobotContainer
    */
   SwerveInputStream driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
                                                                   () -> driverJoystick.getY() * -1,
-                                                                  () -> driverJoystick.getX() * -1)
+                                                                  () -> driverJoystick.getX() * -1
+                                                                )
                                                               .withControllerRotationAxis(() -> driverJoystick.getZ() * -1)
                                                               .deadband(OperatorConstants.DEADBAND)
                                                               .scaleTranslation(0.8)
@@ -123,13 +134,34 @@ public class RobotContainer
 
     intake.setDefaultCommand(intake.set(0));
 
+    turretFlywheel.setDefaultCommand(turretFlywheel.setDutyCycle(0));
+
+    intakeArm.setDefaultCommand(intakeArm.set(0));
+
+    turret.setDefaultCommand(
+        turret.manualControl(() -> driverJoystick.getHID().getPOV())
+    );
+
+    hood.setDefaultCommand(
+        hood.manualControl(() -> driverJoystick.getHID().getPOV())
+    );
+
     autoChooser = AutoBuilder.buildAutoChooser();
 
     autoChooser.setDefaultOption("Do Nothing", Commands.none());
 
     autoChooser.addOption("Drive Forward", drivebase.driveForward().withTimeout(1));
 
+    NamedCommands.registerCommand("Active Intake", intake.set(0.8));
+    NamedCommands.registerCommand("Inactive Intake", intake.set(0));
+    NamedCommands.registerCommand("Active Prefeed", prefeed.runPrefeed(0.8));
+    NamedCommands.registerCommand("Inactive Prefeed", prefeed.runPrefeed(0));
+    NamedCommands.registerCommand("Shoot", turretFlywheel.setDutyCycle(0.9));
+    NamedCommands.registerCommand("Zero with Alliance", drivebase.zeroGyroWithAllianceCommand());
+
     SmartDashboard.putData("Auto Chooser", autoChooser);
+
+    SmartDashboard.putNumber("Robot Speed (m/s)", drivebase.getSpeedMetersPerSecond());
   }
 
   /**
@@ -184,35 +216,26 @@ public class RobotContainer
 //          drivebase.driveToPose(
 //              new Pose2d(new Translation2d(4, 4), Rotation2d.fromDegrees(0)))
 //                              );
-
     }
-    if (DriverStation.isTest())
-    {
-      drivebase.setDefaultCommand(driveFieldOrientedAnglularVelocity); // Overrides drive command above!
 
-      driverJoystick.button(3).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-      driverJoystick.button(4).onTrue((Commands.runOnce(drivebase::zeroGyro)));
-      driverJoystick.button(2).whileTrue(drivebase.centerModulesCommand());
-      // driverJoystick.button(0).onTrue(Commands.none());
-      // driverJoystick.button(0).onTrue(Commands.none());
-    } else
-    {
-      driverJoystick.button(3).onTrue((Commands.runOnce(drivebase::zeroGyro)));
-      driverJoystick.button(4).whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
+      driverJoystick.button(3).onTrue(drivebase.zeroGyroWithAllianceCommand());
 
-      driverJoystick.button(5).whileTrue(prefeed.runPrefeed(0.8));
+      driverJoystick.button(5).whileTrue(turretFlywheel.setDutyCycle(0.9));
 
-      driverJoystick.button(10).whileTrue(intakeArm.set(0.8));
-      driverJoystick.button(9).whileTrue(intakeArm.set(-0.8));
+      driverJoystick.button(5).whileTrue(
+          new WaitCommand(0.5).andThen(prefeed.runPrefeed(0.8))
+      );
+
+      driverJoystick.button(6).whileTrue(prefeed.runPrefeed(-0.6));
+
+      driverJoystick.button(10).whileTrue(intakeArm.set(0.5));
+      driverJoystick.button(9).whileTrue(intakeArm.set(-0.3));
            
       driverJoystick.button(1).whileTrue(intake.set(0.8));
       driverJoystick.button(2).whileTrue(intake.set(-0.8));
 
       driverJoystick.button(11).whileTrue(climber.climbUp());
       driverJoystick.button(12).whileTrue(climber.climbDown());
-
-      driverJoystick.button(6).whileTrue(shooter.runShooter()).whileFalse(shooter.stopShooter());
-  }
     }
 
   /**
@@ -220,10 +243,20 @@ public class RobotContainer
    *
    * @return the command to run in autonomous
    */
-  public Command getAutonomousCommand()
-  {
-    return autoChooser.getSelected();
+public Command getAutonomousCommand()
+{
+  Command selected = autoChooser.getSelected();
+
+  if (selected == null) return Commands.none();
+
+  if (selected instanceof com.pathplanner.lib.commands.PathPlannerAuto auto) {
+    return auto.beforeStarting(() ->
+        drivebase.resetOdometry(auto.getStartingPose())
+    );
   }
+
+  return selected;
+}
 
   public void setMotorBrake(boolean brake)
   {

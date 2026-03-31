@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-import com.ctre.phoenix6.hardware.TalonFXS;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
@@ -32,18 +31,16 @@ import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.local.SparkWrapper;
-import yams.units.EasyCRT;
-import yams.units.EasyCRTConfig;
 
 public class TurretSubsystem extends SubsystemBase {
         private final SparkMax turretMotor = new SparkMax(16, MotorType.kBrushless);
+        private boolean manualMode = false;
 
-        private EasyCRT solver;
         private final SmartMotorControllerConfig motorConfig = new SmartMotorControllerConfig(this)
-                        .withControlMode(ControlMode.CLOSED_LOOP)
-                        .withClosedLoopController(4, 0, 0, DegreesPerSecond.of(180), DegreesPerSecondPerSecond.of(90))
+                        .withControlMode(ControlMode.OPEN_LOOP)
+                        .withClosedLoopController(50, 0, 0, DegreesPerSecond.of(1), DegreesPerSecondPerSecond.of(90))
                         // Configure Motor and Mechanism properties
-                        .withGearing(new MechanismGearing(GearBox.fromReductionStages(12.5)))
+                        .withGearing(new MechanismGearing(GearBox.fromReductionStages(1,1)))
                         .withIdleMode(MotorMode.BRAKE)
                         .withMotorInverted(false)
                         // Setup Telemetry
@@ -100,6 +97,30 @@ public class TurretSubsystem extends SubsystemBase {
 
         public Command setDutyCycle(double dutyCycle) {
                 return turret.set(dutyCycle);
+        }
+
+        public Command manualControl(Supplier<Integer> povSupplier) {
+        return run(() -> {
+                int pov = povSupplier.get();
+
+                if (pov == 90) {
+                manualMode = true;
+                turretSMC.setDutyCycle(0.05);
+
+                } else if (pov == 270) {
+                manualMode = true;
+                turretSMC.setDutyCycle(-0.05);
+
+                } else {
+                if (manualMode) {
+                        // HOLD POSITION when released
+                        setAngleDirect(getAngle());
+                }
+
+                manualMode = false;
+                turretSMC.setDutyCycle(0.0);
+                }
+        });
         }
 
         @Override
