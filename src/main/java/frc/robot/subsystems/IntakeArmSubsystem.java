@@ -64,7 +64,7 @@ import yams.mechanisms.SmartMechanism;
 	
 	  private ArmConfig armCfg = new ArmConfig(sparkSmartMotorController)
 	  // Soft limit is applied to the SmartMotorControllers PID
-	  .withSoftLimits(Degrees.of(-90), Degrees.of(90))
+	  .withSoftLimits(Degrees.of(-180), Degrees.of(180))
 	  // Hard limit is applied to the simulation.
 	  .withHardLimit(Degrees.of(-30), Degrees.of(40))
 	  // Starting position is where your arm starts

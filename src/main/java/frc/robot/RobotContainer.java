@@ -152,6 +152,13 @@ public class RobotContainer
 
     autoChooser.addOption("Drive Forward", drivebase.driveForward().withTimeout(1));
 
+    NamedCommands.registerCommand("Active Intake", intake.set(0.8));
+    NamedCommands.registerCommand("Inactive Intake", intake.set(0));
+    NamedCommands.registerCommand("Active Prefeed", prefeed.runPrefeed(0.8));
+    NamedCommands.registerCommand("Inactive Prefeed", prefeed.runPrefeed(0));
+    NamedCommands.registerCommand("Shoot", turretFlywheel.setDutyCycle(0.9));
+    NamedCommands.registerCommand("Zero with Alliance", drivebase.zeroGyroWithAllianceCommand());
+
     SmartDashboard.putData("Auto Chooser", autoChooser);
 
     SmartDashboard.putNumber("Robot Speed (m/s)", drivebase.getSpeedMetersPerSecond());
@@ -236,10 +243,20 @@ public class RobotContainer
    *
    * @return the command to run in autonomous
    */
-  public Command getAutonomousCommand()
-  {
-    return autoChooser.getSelected();
+public Command getAutonomousCommand()
+{
+  Command selected = autoChooser.getSelected();
+
+  if (selected == null) return Commands.none();
+
+  if (selected instanceof com.pathplanner.lib.commands.PathPlannerAuto auto) {
+    return auto.beforeStarting(() ->
+        drivebase.resetOdometry(auto.getStartingPose())
+    );
   }
+
+  return selected;
+}
 
   public void setMotorBrake(boolean brake)
   {

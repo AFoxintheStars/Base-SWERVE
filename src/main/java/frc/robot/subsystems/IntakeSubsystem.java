@@ -54,7 +54,7 @@ import yams.mechanisms.SmartMechanism;
 	  .withGearing(new MechanismGearing(GearBox.fromReductionStages(3)))
 	  // Motor properties to prevent over currenting.
 	  .withMotorInverted(false)
-	  .withIdleMode(MotorMode.COAST)
+	  .withIdleMode(MotorMode.BRAKE)
 	  .withStatorCurrentLimit(Amps.of(40));
 	
 	  // Vendor motor controller object
